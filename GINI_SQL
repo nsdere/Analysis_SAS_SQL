@@ -1,0 +1,26 @@
+SELECT 1-SUM(GOODS_PER*(CUMM_BAD+ONCEKI_BADS)) AS GINI
+FROM   (
+        SELECT NTILE,
+               GOODS_PER,
+               CUMM_BAD,
+               NVL(LAG(CUMM_BAD) OVER(PARTITION BY 1 ORDER BY NTILE),0) AS ONCEKI_BADS
+        FROM   (
+                SELECT NTILE,
+                       GOODS_PER,
+                       BADS,
+                       SUM(BADS) OVER(PARTITION BY 1 ORDER BY NTILE) AS CUMM_BAD
+                FROM   (
+                        SELECT NTILE,
+                               SUM(1-TARGET)/AVG(TOTAL_GOODS) AS GOODS_PER,
+                               SUM(TARGET)/AVG(TOTAL_BADS) AS BADS
+                        FROM   (
+                                SELECT NTILE(100) OVER( ORDER BY  EM_EVENTPROBABILITY DESC) AS NTILE,
+                                       SUM(TARGET) OVER(PARTITION BY 1) AS TOTAL_BADS,
+                                       SUM(1-TARGET) OVER(PARTITION BY 1) AS TOTAL_GOODS,
+                                       TARGET
+                                FROM   DENEME_GINI 
+                               )
+                        GROUP BY NTILE   
+                       ) 
+                )
+        )
